@@ -1,11 +1,9 @@
 # BabylonJS MeshEditor
-\
+
 
 ## About
 
-It currently supports  
-* 1 
-* 2
+A mesh editor for BabylonJS.
 
 ## Quick start
 
@@ -21,7 +19,7 @@ See INSTALL below to find where you can get "MeshEditor.min.js".
 ```
   //------------------MeshEditor -------------------------------------------------
   var MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
-  var me = new MeshEditor(mesh,camera,scene);
+  var me = new new MeshEditor(mesh,camera,canvas,scene);
   me.start();
 ```
 
@@ -48,26 +46,18 @@ In other words load it using the "script" tag and refer to it using the global n
 ```
 // JavaScript
 var MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
-var cc = new new MeshEditor(mesh,camera,canvas,scene);
+var me = new new MeshEditor(mesh,camera,canvas,scene);
 ```
 ```
 // TypeScript
 import MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
-let ec = new new MeshEditor(mesh,camera,canvas,scene);
+let me = new new MeshEditor(mesh,camera,canvas,scene);
 ```
 Takes four parms
 * mesh - the mesh to edit
 * camera - camera
 * canvas - canvas
 * scene - scene
-
-
-#### To start/stop controller
-```
-cc.start();
-cc.stop();
-```
-
 
 ## Build
 If not already installed, install node js and typescript.  
