@@ -1,0 +1,28 @@
+{
+  "name": "babylonjs-mesheditor",
+  "version": "0.1.0",
+  "description" : "A MeshEditor for BabylonJS",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ssatguru/BabylonJS-MeshEditor.git"
+  },
+  "keywords": [
+    "babylonjs","MeshEditor"
+  ],
+  "author": "satguru <ssatguru@gmail.com>",
+  "license": "Apache-2.0",
+  "contributors": [],
+  "main": "dist/MeshEditor.min.js",
+  "types": "dist/MeshEditor.d.ts",   
+  "dependencies": {},
+  "devDependencies": {
+    "babylonjs": "^3.0.0",
+    "babylonjs-editcontrol": "^2.5.0",
+    "uglify-js": "^2.8.22"
+  },
+  "scripts": {
+    "compile": "tsc -p src",
+    "min": "uglifyjs dist/MeshEditor.js -o dist/MeshEditor.min.js -mc",
+    "build": "npm run compile && npm run min"
+  }
+}
