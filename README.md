@@ -5,6 +5,8 @@
 
 A mesh editor for BabylonJS.
 
+For Demo see https://ssatguru.github.io/BabylonJS-MeshEditor/demo/index.html
+
 ## Quick start
 
 1) add the following dependencies 
