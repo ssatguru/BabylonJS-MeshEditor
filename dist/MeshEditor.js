@@ -8,18 +8,17 @@ var org;
             (function (component) {
                 var Color3 = BABYLON.Color3;
                 var Vector3 = BABYLON.Vector3;
-                var Mesh = BABYLON.Mesh;
                 var StandardMaterial = BABYLON.StandardMaterial;
+                var Path2 = BABYLON.Path2;
                 var VertexBuffer = BABYLON.VertexBuffer;
                 var EditControl = org.ssatguru.babylonjs.component.EditControl;
                 var MeshEditor = (function () {
                     function MeshEditor(mesh, camera, canvas, scene) {
                         var _this = this;
                         this.faceId = 0;
-                        this.prevPosition = Vector3.Zero();
                         this.delta = Vector3.Zero();
                         this.facePicked = 0;
-                        this.faceSelected = false;
+                        this.pTemp = Vector3.Zero();
                         this.camera = camera;
                         window.addEventListener("keyup", function (e) { return _this.onKeyUp(e); }, false);
                         this.mesh = mesh;
@@ -28,43 +27,33 @@ var org;
                         var vrtNormal = mesh.getVerticesData(VertexBuffer.NormalKind);
                         var vrtUV = mesh.getVerticesData(VertexBuffer.UVKind);
                         this.faceVertices = mesh.getIndices();
-                        this.vrtColors = new Array(this.vertices.length * 4 / 3);
-                        this.clearColors(this.vrtColors);
-                        var r = 0.1;
-                        this.faceSelector = Mesh.CreateSphere("", 10, r, scene);
+                        this.faceSelector = this.createTriangle("selector", 1, scene);
                         this.faceSelector.material = new StandardMaterial("impactMat", scene);
                         this.faceSelector.material.diffuseColor = Color3.Black();
-                        this.faceSelector.rotationQuaternion = BABYLON.Quaternion.Zero();
+                        this.faceSelector.rotationQuaternion = BABYLON.Quaternion.Identity();
+                        this.faceSelector.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
                         this.ec = new EditControl(this.faceSelector, camera, canvas, 0.5, false);
+                        this.ec.setLocal(true);
+                        this.ec.enableTranslation();
+                        this.highLightFace(0, this.faceSelector);
+                        this.highLightFace(0, this.faceSelector);
                         this.ec.addActionListener(function (t) {
-                            _this.faceSelector.position.subtractToRef(_this.prevPosition, _this.delta);
-                            s1.position.addInPlace(_this.delta);
-                            s2.position.addInPlace(_this.delta);
-                            s3.position.addInPlace(_this.delta);
-                            _this.prevPosition.set(_this.faceSelector.position.x, _this.faceSelector.position.y, _this.faceSelector.position.z);
-                            _this.updateFacePosition(_this.facePicked, _this.points);
+                            _this.updateFacePosition(_this.facePicked, _this.faceSelector);
                             _this.mesh.updateVerticesData(VertexBuffer.PositionKind, _this.vertices, false, false);
                         });
-                        var s1 = Mesh.CreateSphere("s1", 3, r, scene);
-                        this.setMaterial(s1, Color3.Blue(), scene);
-                        var s2 = s1.clone("s2");
-                        var s3 = s1.clone("s3");
-                        this.points = [s1, s2, s3];
                         scene.onPointerDown = function (evt, pickResult) {
                             if (!(evt.button == 2))
                                 return;
                             if (pickResult.hit) {
-                                _this.ec.enableTranslation();
-                                _this.faceSelected = true;
-                                _this.faceSelector.position = pickResult.pickedPoint;
-                                _this.prevPosition.set(_this.faceSelector.position.x, _this.faceSelector.position.y, _this.faceSelector.position.z);
-                                _this.clearColors(_this.vrtColors);
+                                if (pickResult.pickedMesh != _this.mesh)
+                                    return;
                                 _this.facePicked = pickResult.faceId;
-                                _this.highLightFace(_this.facePicked, Color3.Gray(), _this.points);
+                                console.log("face id " + _this.facePicked);
+                                _this.highLightFace(_this.facePicked, _this.faceSelector);
                             }
                         };
                     }
-                    MeshEditor.prototype.updateFacePosition = function (faceId, points) {
+                    MeshEditor.prototype.updateFacePosition = function (faceId, faceSelector) {
                         var i = faceId * 3;
                         var v1 = this.faceVertices[i];
                         var v2 = this.faceVertices[i + 1];
@@ -73,18 +62,23 @@ var org;
                         var vv1 = v1 * 3;
                         var vv2 = v2 * 3;
                         var vv3 = v3 * 3;
-                        v[vv1] = points[0].position.x;
-                        v[vv1 + 1] = points[0].position.y;
-                        v[vv1 + 2] = points[0].position.z;
-                        v[vv2] = points[1].position.x;
-                        v[vv2 + 1] = points[1].position.y;
-                        v[vv2 + 2] = points[1].position.z;
-                        v[vv3] = points[2].position.x;
-                        v[vv3 + 1] = points[2].position.y;
-                        v[vv3 + 2] = points[2].position.z;
+                        var verts = faceSelector.getVerticesData(VertexBuffer.PositionKind);
+                        var matrix = faceSelector.getWorldMatrix();
+                        Vector3.TransformCoordinatesFromFloatsToRef(verts[0], verts[1], verts[2], matrix, this.pTemp);
+                        v[vv1] = this.pTemp.x;
+                        v[vv1 + 1] = this.pTemp.y;
+                        v[vv1 + 2] = this.pTemp.z;
+                        Vector3.TransformCoordinatesFromFloatsToRef(verts[3], verts[4], verts[5], matrix, this.pTemp);
+                        v[vv2] = this.pTemp.x;
+                        v[vv2 + 1] = this.pTemp.y;
+                        v[vv2 + 2] = this.pTemp.z;
+                        Vector3.TransformCoordinatesFromFloatsToRef(verts[6], verts[7], verts[8], matrix, this.pTemp);
+                        v[vv3] = this.pTemp.x;
+                        v[vv3 + 1] = this.pTemp.y;
+                        v[vv3 + 2] = this.pTemp.z;
                     };
                     ;
-                    MeshEditor.prototype.highLightFace = function (faceId, color, points) {
+                    MeshEditor.prototype.highLightFace = function (faceId, faceSelector) {
                         var i = faceId * 3;
                         var v1 = this.faceVertices[i];
                         var v2 = this.faceVertices[i + 1];
@@ -94,19 +88,24 @@ var org;
                         var vv1 = v1 * 3;
                         var vv2 = v2 * 3;
                         var vv3 = v3 * 3;
-                        var p1 = new Vector3(v[vv1], v[vv1 + 1], v[vv1 + 2]);
-                        var p2 = new Vector3(v[vv2], v[vv2 + 1], v[vv2 + 2]);
-                        var p3 = new Vector3(v[vv3], v[vv3 + 1], v[vv3 + 2]);
-                        points[0].position = p1;
-                        points[1].position = p2;
-                        points[2].position = p3;
-                        var cc1 = v1 * 4;
-                        var cc2 = v2 * 4;
-                        var cc3 = v3 * 4;
-                        this.setColor(cc1, this.vrtColors, color);
-                        this.setColor(cc2, this.vrtColors, color);
-                        this.setColor(cc3, this.vrtColors, color);
-                        this.mesh.setVerticesData(VertexBuffer.ColorKind, this.vrtColors, true);
+                        faceSelector.position.x = (v[vv1] + v[vv2] + v[vv3]) / 3;
+                        faceSelector.position.y = (v[vv1 + 1] + v[vv2 + 1] + v[vv3 + 1]) / 3;
+                        faceSelector.position.z = (v[vv1 + 2] + v[vv2 + 2] + v[vv3 + 2]) / 3;
+                        var verts = faceSelector.getVerticesData(VertexBuffer.PositionKind);
+                        var matrix = faceSelector.getWorldMatrix().invert();
+                        Vector3.TransformCoordinatesFromFloatsToRef(v[vv1], v[vv1 + 1], v[vv1 + 2], matrix, this.pTemp);
+                        verts[0] = this.pTemp.x;
+                        verts[1] = this.pTemp.y;
+                        verts[2] = this.pTemp.z;
+                        Vector3.TransformCoordinatesFromFloatsToRef(v[vv2], v[vv2 + 1], v[vv2 + 2], matrix, this.pTemp);
+                        verts[3] = this.pTemp.x;
+                        verts[4] = this.pTemp.y;
+                        verts[5] = this.pTemp.z;
+                        Vector3.TransformCoordinatesFromFloatsToRef(v[vv3], v[vv3 + 1], v[vv3 + 2], matrix, this.pTemp);
+                        verts[6] = this.pTemp.x;
+                        verts[7] = this.pTemp.y;
+                        verts[8] = this.pTemp.z;
+                        faceSelector.setVerticesData(VertexBuffer.PositionKind, verts, true);
                     };
                     MeshEditor.prototype.setMaterial = function (mesh, color, scene) {
                         mesh.material = new StandardMaterial("", scene);
@@ -131,12 +130,26 @@ var org;
                         var event = e;
                         var chr = String.fromCharCode(event.keyCode);
                         if (event.keyCode === 27) {
-                            this.faceSelected = false;
-                            this.ec.disableTranslation();
                         }
                         if (chr === "F") {
-                            this.camera.target = this.faceSelector.position;
+                            this.camera.target.x = this.faceSelector.position.x;
+                            this.camera.target.y = this.faceSelector.position.y;
+                            this.camera.target.z = this.faceSelector.position.z;
                         }
+                        if (chr === "1") {
+                            this.ec.enableTranslation();
+                        }
+                        if (chr === "2") {
+                            this.ec.enableRotation();
+                        }
+                        if (chr === "3") {
+                        }
+                    };
+                    MeshEditor.prototype.createTriangle = function (name, w, scene) {
+                        var p = new Path2(w / 2, -w / 2).addLineTo(w / 2, w / 2).addLineTo(-w / 2, w / 2).addLineTo(w / 2, -w / 2);
+                        var s = new BABYLON.PolygonMeshBuilder(name, p, scene);
+                        var t = s.build(true);
+                        return t;
                     };
                     return MeshEditor;
                 }());
