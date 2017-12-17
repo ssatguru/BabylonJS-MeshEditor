@@ -9,8 +9,6 @@ declare namespace org.ssatguru.babylonjs.component {
         vertices: number[] | Float32Array;
         faceVertices: IndicesArray;
         mesh: Mesh;
-        faceId: number;
-        delta: Vector3;
         facePicked: number;
         faceSelector: Mesh;
         ec: EditControl;
@@ -18,11 +16,15 @@ declare namespace org.ssatguru.babylonjs.component {
         constructor(mesh: Mesh, camera: Camera, canvas: HTMLCanvasElement, scene: Scene);
         pTemp: Vector3;
         private updateFacePosition(faceId, faceSelector);
+        v1v: Vector3;
+        v2v: Vector3;
+        v3v: Vector3;
         private highLightFace(faceId, faceSelector);
         private setMaterial(mesh, color, scene);
         private clearColors(vrtColors);
         private setColor(cc, vrtColors, color);
         private onKeyUp(e);
         private createTriangle(name, w, scene);
+        private getRotation(a1, a2);
     }
 }

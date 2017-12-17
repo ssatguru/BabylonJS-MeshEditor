@@ -4,7 +4,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
         <title>MeshEditor for BabylonJS</title>
-        
+
         <!-- Babylon.js -->
         <script src="../lib/babylon.3.1.1-12-13-2017.js"></script>
         <script src="../lib/EditControl.min.js"></script>
@@ -21,6 +21,7 @@
 
             #controls {
                 position: absolute;
+                background-color: #fff;
                 left: 10px;
                 top: 10px;
             }
@@ -57,21 +58,29 @@
     </head>
 
     <body oncontextmenu="return false;">
-        
+
         <div id="canvasZone">
             <canvas id="renderCanvas"></canvas>
         </div>
 
         <div id="controls">
-            <button id="help" >Help</button>
+            Key <br>
+            W : toggle wireframe <br>
+            1 : translate <br>
+            2 : rotate<br>
+            3 : scale<br>
+            L : toggle local/global axes<br>
+            F : focus<br>
+            <br>
+            Mouse<br>
+            right click : select face<br>
+            <br>
+            <button id="help" >Help</button><br>
         </div>
 
         <div id="overlay">
             <div>
                 <h2>Demo of MeshEditor for Babylonjs</h2>
-                <p> Right click any where on the ground to select a small part of it.Drag arrows to transform.
-                <P> Press "F" to focus on part selected.
-                <p> Press 1,2,3 to switch to transform,rotation,scaling.
                 <p>
                     For more information and source code head on over to <br>
                     <a href="https://github.com/ssatguru/BabylonJS-MeshEditor"
@@ -81,7 +90,7 @@
                 <button id="closehelp" onclick="showHelp();">close</button>
             </div>
         </div>
-        
+
         <script>
 
             var helpButton = document.getElementById("help");
@@ -95,9 +104,24 @@
             let engine = new BABYLON.Engine(canvas,true);
             let scene = new BABYLON.Scene(engine);
 
-            // setup environment
+            function drawAxes(scene){
+                var xAxis = BABYLON.Mesh.CreateLines("xAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(20,0,0)],scene);
+                let yAxis = BABYLON.Mesh.CreateLines("xAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,20,0)],scene);
+                let zAxis = BABYLON.Mesh.CreateLines("xAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,20)],scene);
+
+                xAxis.color = new BABYLON.Color3(1,0,0);
+                yAxis.color = new BABYLON.Color3(0,1,0);
+                zAxis.color = new BABYLON.Color3(0,0,1);
+
+                xAxis.renderingGroupId = 1;
+                yAxis.renderingGroupId = 1;
+                zAxis.renderingGroupId = 1;
+            }
+
+            drawAxes(scene);
+
             let light = new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,0),scene);
-            
+
             var camera = new BABYLON.ArcRotateCamera("Camera",Math.PI/4,0.4*Math.PI,15,BABYLON.Vector3.Zero(),scene);
             camera.wheelPrecision = 15;
             camera.attachControl(canvas,true);
@@ -105,15 +129,19 @@
             //let mesh = BABYLON.Mesh.CreateBox("box",6.0,scene,true,BABYLON.Mesh.FRONTSIDE);
             //let mesh = BABYLON.MeshBuilder.CreateTorus("torus",{diameter:12,thickness:4},scene);
             let mesh = BABYLON.Mesh.CreateGround("ground",20,20,10,scene);
+
+            mesh.position.y = 1;
+            mesh.rotation.x = 0.0;
             var groundMaterial = new BABYLON.StandardMaterial("Grid Material",scene);
             groundMaterial.diffuseTexture = new BABYLON.Texture("ground.jpg",scene);
             groundMaterial.specularColor = new BABYLON.Color3(0,0,0);
-            groundMaterial.wireframe = true;
+            groundMaterial.specularPower = 0;
+            groundMaterial.wireframe = false;
             mesh.material = groundMaterial;
 
-           
             let MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
             meshEditor = new MeshEditor(mesh,camera,canvas,scene);
+
 
             //            BABYLON.SceneLoader.ImportMesh("","https://raw.githubusercontent.com/BabylonJS/MeshesLibrary/master/Dude/","dude.babylon",scene,function(newMeshes){
             //                
@@ -132,7 +160,9 @@
             window.addEventListener("resize",function(){
                 engine.resize();
             });
-            
+
+
+
         </script>
 
 

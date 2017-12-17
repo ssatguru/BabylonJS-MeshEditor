@@ -20,31 +20,22 @@ namespace org.ssatguru.babylonjs.component {
     export class MeshEditor {
 
         vertices: number[]|Float32Array;
-//        vrtColors: number[]|Float32Array;
         faceVertices: IndicesArray;
         mesh: Mesh;
-        faceId: number=0;
-//        prevPosition: Vector3=Vector3.Zero();
-        delta: Vector3=Vector3.Zero();
         facePicked: number=0;
-        //faceSelected: boolean=false;
         faceSelector: Mesh;
         ec: EditControl;
         camera: Camera;
 
         constructor(mesh: Mesh,camera: Camera,canvas: HTMLCanvasElement,scene: Scene) {
             this.camera=camera;
-            
+            this.mesh=mesh;
          
             window.addEventListener("keyup",(e) => {return this.onKeyUp(e)},false);
-
-            this.mesh=mesh;
 
             this.mesh.markVerticesDataAsUpdatable(VertexBuffer.PositionKind,true);
 
             this.vertices=mesh.getVerticesData(VertexBuffer.PositionKind);
-            let vrtNormal=mesh.getVerticesData(VertexBuffer.NormalKind);
-            let vrtUV=mesh.getVerticesData(VertexBuffer.UVKind);
             this.faceVertices=mesh.getIndices();
 
             // let vrtColors = box.getVerticesData(VertexBuffer.ColorKind);
@@ -55,12 +46,12 @@ namespace org.ssatguru.babylonjs.component {
 
             this.faceSelector=this.createTriangle("selector",1,scene);
             this.faceSelector.material=new StandardMaterial("impactMat",scene);
-            (<StandardMaterial>this.faceSelector.material).diffuseColor=Color3.Black();
-            this.faceSelector.rotationQuaternion=BABYLON.Quaternion.Identity();
+            (<StandardMaterial>this.faceSelector.material).diffuseColor=Color3.Gray();
+            this.faceSelector.visibility=0.8;
             this.faceSelector.markVerticesDataAsUpdatable(VertexBuffer.PositionKind,true);
+            this.faceSelector.renderingGroupId=1;
             
-            
-            this.ec=new EditControl(this.faceSelector,camera,canvas,0.5,false);
+            this.ec=new EditControl(this.faceSelector,camera,canvas,0.5,true);
             this.ec.setLocal(true);
             this.ec.enableTranslation();
             //this.ec.enableRotation();
@@ -103,79 +94,102 @@ namespace org.ssatguru.babylonjs.component {
         pTemp: Vector3=Vector3.Zero();
         private updateFacePosition(faceId: number,faceSelector: Mesh) {
             let i: number=faceId*3;
+            
+            //index into the vertices array
             let v1=this.faceVertices[i];
             let v2=this.faceVertices[i+1];
             let v3=this.faceVertices[i+2];
 
+            //start of the three vertices
             let v=this.vertices;
-            let vv1=v1*3;
-            let vv2=v2*3;
-            let vv3=v3*3;
+            let v1s=v1*3;
+            let v2s=v2*3;
+            let v3s=v3*3;
             
             let verts: number[]|Float32Array = faceSelector.getVerticesData(VertexBuffer.PositionKind);
-            let matrix:Matrix = faceSelector.getWorldMatrix();
+            let sm:Matrix = faceSelector.getWorldMatrix();
+          
             
-            Vector3.TransformCoordinatesFromFloatsToRef(verts[0],verts[1],verts[2],matrix,this.pTemp);
+            let mm_i: Matrix=this.mesh.getWorldMatrix().clone().invert();
             
-            //TODO need to convert to mesh local space
+            //lets get the selector vertex in world space
+            Vector3.TransformCoordinatesFromFloatsToRef(verts[0],verts[1],verts[2],sm,this.pTemp);
+            //now lets get the selector vertex in mesh's local space.
+            Vector3.TransformCoordinatesFromFloatsToRef(this.pTemp.x,this.pTemp.y,this.pTemp.z,mm_i,this.pTemp);
             
-            v[vv1]=this.pTemp.x;
-            v[vv1+1]=this.pTemp.y;
-            v[vv1+2]=this.pTemp.z;
+            v[v1s]=this.pTemp.x;
+            v[v1s+1]=this.pTemp.y;
+            v[v1s+2]=this.pTemp.z;
             
-            Vector3.TransformCoordinatesFromFloatsToRef(verts[3],verts[4],verts[5],matrix,this.pTemp);
-            v[vv2]=this.pTemp.x;
-            v[vv2+1]=this.pTemp.y;
-            v[vv2+2]=this.pTemp.z;
+            Vector3.TransformCoordinatesFromFloatsToRef(verts[3],verts[4],verts[5],sm,this.pTemp);
+            Vector3.TransformCoordinatesFromFloatsToRef(this.pTemp.x,this.pTemp.y,this.pTemp.z,mm_i,this.pTemp);
             
-            Vector3.TransformCoordinatesFromFloatsToRef(verts[6],verts[7],verts[8],matrix,this.pTemp);
-            v[vv3]=this.pTemp.x;
-            v[vv3+1]=this.pTemp.y;
-            v[vv3+2]=this.pTemp.z;
-
-
+            v[v2s]=this.pTemp.x;
+            v[v2s+1]=this.pTemp.y;
+            v[v2s+2]=this.pTemp.z;
+            
+            Vector3.TransformCoordinatesFromFloatsToRef(verts[6],verts[7],verts[8],sm,this.pTemp);
+            Vector3.TransformCoordinatesFromFloatsToRef(this.pTemp.x,this.pTemp.y,this.pTemp.z,mm_i,this.pTemp);
+            
+            v[v3s]=this.pTemp.x;
+            v[v3s+1]=this.pTemp.y;
+            v[v3s+2]=this.pTemp.z;
         };
 
-
+        v1v:Vector3=new Vector3(0,0,0);
+        v2v:Vector3=new Vector3(0,0,0);
+        v3v:Vector3=new Vector3(0,0,0);
         private highLightFace(faceId: number, faceSelector: Mesh) {
             let i: number=faceId*3;
+            
+            //index into the vertices array
             let v1=this.faceVertices[i];
             let v2=this.faceVertices[i+1];
             let v3=this.faceVertices[i+2];
-            console.log("face vertex index : "+v1+","+v2+","+v3);
 
+            let mm: Matrix=this.mesh.getWorldMatrix();
 
-            //face vertices position
+            //start of the three vertices
             let v=this.vertices;
-            let vv1=v1*3;
-            let vv2=v2*3;
-            let vv3=v3*3;
+            let v1s=v1*3;
+            let v2s=v2*3;
+            let v3s=v3*3;
             
-            faceSelector.position.x=(v[vv1]+v[vv2]+v[vv3])/3;
-            faceSelector.position.y=(v[vv1+1]+v[vv2+1]+v[vv3+1])/3;
-            faceSelector.position.z=(v[vv1+2]+v[vv2+2]+v[vv3+2])/3;
+            Vector3.TransformCoordinatesFromFloatsToRef(v[v1s],v[v1s+1],v[v1s+2],mm,this.v1v);
+            Vector3.TransformCoordinatesFromFloatsToRef(v[v2s],v[v2s+1],v[v2s+2],mm,this.v2v);
+            Vector3.TransformCoordinatesFromFloatsToRef(v[v3s],v[v3s+1],v[v3s+2],mm,this.v3v);
+            
+           //set selector rotation so it is parallel to the triangular face selected
+            let a1: Vector3=this.v1v.subtract(this.v2v);
+            let a2: Vector3=this.v3v.subtract(this.v2v);
+            this.faceSelector.rotation=this.getRotation(a1,a2);
+            
+            //baycenter position
+            faceSelector.position.x=(this.v1v.x+this.v2v.x+this.v3v.x)/3;
+            faceSelector.position.y=(this.v1v.y+this.v2v.y+this.v3v.y)/3;
+            faceSelector.position.z=(this.v1v.z+this.v2v.z+this.v3v.z)/3;
             
             let verts: number[]|Float32Array = faceSelector.getVerticesData(VertexBuffer.PositionKind);
-            let matrix: Matrix=faceSelector.getWorldMatrix().invert();
-            
-            Vector3.TransformCoordinatesFromFloatsToRef(v[vv1],v[vv1+1],v[vv1+2],matrix,this.pTemp);
+            let sm_i: Matrix=faceSelector.getWorldMatrix().clone().invert();
+      
+            Vector3.TransformCoordinatesToRef(this.v1v,sm_i,this.pTemp);
             verts[0]=this.pTemp.x;
             verts[1]=this.pTemp.y;
             verts[2]=this.pTemp.z;
             
-            Vector3.TransformCoordinatesFromFloatsToRef(v[vv2],v[vv2+1],v[vv2+2],matrix,this.pTemp);
+            Vector3.TransformCoordinatesToRef(this.v2v,sm_i,this.pTemp);
             verts[3]=this.pTemp.x;
             verts[4]=this.pTemp.y;
             verts[5]=this.pTemp.z;
             
-            Vector3.TransformCoordinatesFromFloatsToRef(v[vv3],v[vv3+1],v[vv3+2],matrix,this.pTemp);
+            Vector3.TransformCoordinatesToRef(this.v3v,sm_i,this.pTemp);
             verts[6]=this.pTemp.x;
             verts[7]=this.pTemp.y;
             verts[8]=this.pTemp.z;
             
             faceSelector.setVerticesData(VertexBuffer.PositionKind,verts,true);
+            this.ec.switchTo(faceSelector,true);
             
-
             //face vertices color
 //            let cc1=v1*4;
 //            let cc2=v2*4;
@@ -231,6 +245,13 @@ namespace org.ssatguru.babylonjs.component {
             }
             if(chr==="3") {
                 this.ec.enableScaling();
+                if (!this.ec.isLocal()) this.ec.setLocal(true);
+            }
+            if (chr==="L"){
+                this.ec.setLocal(!this.ec.isLocal());
+            }
+            if (chr==="W"){
+                this.mesh.material.wireframe=!this.mesh.material.wireframe;
             }
         }
         
@@ -239,6 +260,12 @@ namespace org.ssatguru.babylonjs.component {
             var s=new BABYLON.PolygonMeshBuilder(name,p,scene)
             var t=s.build(true);
             return t;
+        }
+        
+        private  getRotation(a1:Vector3,a2:Vector3):Vector3{
+            Vector3.CrossToRef(a1,a2,this.pTemp);
+            let a3:Vector3=Vector3.Cross(this.pTemp,a1);
+            return Vector3.RotationFromAxis(a3,this.pTemp,a1);
         }
 
     }
