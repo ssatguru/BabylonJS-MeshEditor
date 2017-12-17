@@ -130,13 +130,15 @@
             //let mesh = BABYLON.MeshBuilder.CreateTorus("torus",{diameter:12,thickness:4},scene);
             let mesh = BABYLON.Mesh.CreateGround("ground",20,20,10,scene);
 
-            mesh.position.y = 1;
+            //mesh.position.y = 1;
             mesh.rotation.x = 0.0;
+            
             var groundMaterial = new BABYLON.StandardMaterial("Grid Material",scene);
             groundMaterial.diffuseTexture = new BABYLON.Texture("ground.jpg",scene);
             groundMaterial.specularColor = new BABYLON.Color3(0,0,0);
             groundMaterial.specularPower = 0;
             groundMaterial.wireframe = false;
+            
             mesh.material = groundMaterial;
 
             let MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
