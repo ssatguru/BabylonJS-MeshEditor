@@ -17,7 +17,7 @@
   "dependencies": {},
   "devDependencies": {
     "babylonjs": "^3.0.0",
-    "babylonjs-editcontrol": "^2.5.0",
+    "babylonjs-editcontrol": "^2.5.1",
     "uglify-js": "^2.8.22"
   },
   "scripts": {

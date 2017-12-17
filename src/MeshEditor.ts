@@ -67,8 +67,9 @@ namespace org.ssatguru.babylonjs.component {
             //this.ec.enableScaling();
             
             //????
-            this.highLightFace(0,this.faceSelector);
-            this.highLightFace(0,this.faceSelector);
+            this.facePicked=90;
+            this.highLightFace(this.facePicked,this.faceSelector);
+            this.highLightFace(this.facePicked,this.faceSelector);
             
             this.ec.addActionListener((t) => {
                 this.updateFacePosition(this.facePicked,this.faceSelector);
@@ -229,7 +230,7 @@ namespace org.ssatguru.babylonjs.component {
                 this.ec.enableRotation();
             }
             if(chr==="3") {
-                //this.ec.enableScaling();
+                this.ec.enableScaling();
             }
         }
         

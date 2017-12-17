@@ -35,8 +35,9 @@ var org;
                         this.ec = new EditControl(this.faceSelector, camera, canvas, 0.5, false);
                         this.ec.setLocal(true);
                         this.ec.enableTranslation();
-                        this.highLightFace(0, this.faceSelector);
-                        this.highLightFace(0, this.faceSelector);
+                        this.facePicked = 90;
+                        this.highLightFace(this.facePicked, this.faceSelector);
+                        this.highLightFace(this.facePicked, this.faceSelector);
                         this.ec.addActionListener(function (t) {
                             _this.updateFacePosition(_this.facePicked, _this.faceSelector);
                             _this.mesh.updateVerticesData(VertexBuffer.PositionKind, _this.vertices, false, false);
@@ -143,6 +144,7 @@ var org;
                             this.ec.enableRotation();
                         }
                         if (chr === "3") {
+                            this.ec.enableScaling();
                         }
                     };
                     MeshEditor.prototype.createTriangle = function (name, w, scene) {
