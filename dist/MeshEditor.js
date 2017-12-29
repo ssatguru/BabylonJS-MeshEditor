@@ -17,33 +17,90 @@ var org;
                     function MeshEditor(mesh, camera, canvas, scene) {
                         var _this = this;
                         this.facePicked = 0;
+                        this.ec = null;
                         this.mode = "F";
                         this.v1v = new Vector3(0, 0, 0);
                         this.v2v = new Vector3(0, 0, 0);
                         this.v3v = new Vector3(0, 0, 0);
                         this.pTemp = Vector3.Zero();
-                        this.camera = camera;
                         this.mesh = mesh;
+                        this.camera = camera;
+                        this.canvas = canvas;
+                        this.scene = scene;
                         window.addEventListener("keyup", function (e) { return _this.onKeyUp(e); }, false);
                         this.mesh.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
                         this.vertices = mesh.getVerticesData(VertexBuffer.PositionKind);
                         this.faceVertices = mesh.getIndices();
-                        if (this.mode == "F") {
-                            this.faceSelector = this.createFaceSelector(scene);
-                            this.ec = new EditControl(this.faceSelector, camera, canvas, 0.5, true);
-                        }
-                        else if (this.mode == "E") {
-                            this.edgeSelector = this.createEdgeSelector(scene);
-                            this.ec = new EditControl(this.edgeSelector, camera, canvas, 0.5, true);
-                        }
-                        else if (this.mode == "P") {
-                            console.log("point selectot");
-                            this.pointSelector = new Mesh("pointSelector", scene);
-                            this.ec = new EditControl(this.pointSelector, camera, canvas, 0.5, true);
-                        }
-                        this.ec.setLocal(true);
-                        this.ec.enableTranslation();
-                        this.ec.addActionListener(function (t) {
+                        this.faceSelector = this.createFaceSelector(scene);
+                        this.edgeSelector = this.createEdgeSelector(scene);
+                        this.pointSelector = new Mesh("pointSelector", scene);
+                        this.ec = null;
+                        scene.onPointerDown = function (evt, pickResult) {
+                            if (!(evt.button == 2))
+                                return;
+                            if (pickResult.hit) {
+                                console.log(pickResult.pickedMesh);
+                                if (pickResult.pickedMesh != _this.mesh)
+                                    return;
+                                _this.facePicked = pickResult.faceId;
+                                var selector = null;
+                                if (_this.mode == "F") {
+                                    selector = _this.faceSelector;
+                                    _this.highLightFace(_this.facePicked, selector);
+                                }
+                                else if (_this.mode == "E") {
+                                    selector = _this.edgeSelector;
+                                    _this.highLightEdge(_this.facePicked, pickResult.pickedPoint, selector);
+                                }
+                                else if (_this.mode == "P") {
+                                    selector = _this.pointSelector;
+                                    _this.highLightPoint(_this.facePicked, pickResult.pickedPoint, selector);
+                                }
+                                if (selector != null) {
+                                    selector.visibility = 1;
+                                    if (_this.ec == null) {
+                                        console.log("creating ec");
+                                        _this.ec = _this.createEditControl(selector, _this.camera, _this.canvas);
+                                    }
+                                    else {
+                                        if (_this.ec.isHidden())
+                                            _this.ec.show();
+                                        _this.ec.switchTo(selector, true);
+                                    }
+                                }
+                            }
+                        };
+                    }
+                    MeshEditor.prototype.enablePoint = function () {
+                        if (this.mode == "P")
+                            return;
+                        this.mode = "P";
+                        this.faceSelector.visibility = 0;
+                        this.edgeSelector.visibility = 0;
+                        this.ec.hide();
+                    };
+                    MeshEditor.prototype.enableEdge = function () {
+                        if (this.mode == "E")
+                            return;
+                        this.mode = "E";
+                        this.faceSelector.visibility = 0;
+                        this.pointSelector.visibility = 0;
+                        this.ec.hide();
+                    };
+                    MeshEditor.prototype.enableFace = function () {
+                        if (this.mode == "F")
+                            return;
+                        this.mode = "F";
+                        this.edgeSelector.visibility = 0;
+                        this.pointSelector.visibility = 0;
+                        this.ec.hide();
+                    };
+                    MeshEditor.prototype.createEditControl = function (mesh, camera, canvas) {
+                        var _this = this;
+                        var ec = new EditControl(mesh, camera, canvas, 0.5, true);
+                        ec.setLocal(true);
+                        ec.enableTranslation();
+                        ec.addActionListener(function (t) {
                             if (_this.mode == "F") {
                                 _this.updateFacePosition(_this.facePicked, _this.faceSelector);
                             }
@@ -55,31 +112,7 @@ var org;
                             }
                             _this.mesh.updateVerticesData(VertexBuffer.PositionKind, _this.vertices, false, false);
                         });
-                        scene.onPointerDown = function (evt, pickResult) {
-                            if (!(evt.button == 2))
-                                return;
-                            if (pickResult.hit) {
-                                if (pickResult.pickedMesh != _this.mesh)
-                                    return;
-                                _this.facePicked = pickResult.faceId;
-                                console.log("face id " + _this.facePicked);
-                                if (_this.mode == "F")
-                                    _this.highLightFace(_this.facePicked, _this.faceSelector);
-                                else if (_this.mode == "E")
-                                    _this.highLightEdge(_this.facePicked, pickResult.pickedPoint, _this.edgeSelector);
-                                else if (_this.mode == "P")
-                                    _this.highLightPoint(_this.facePicked, pickResult.pickedPoint, _this.pointSelector);
-                            }
-                        };
-                    }
-                    MeshEditor.prototype.enablePoint = function () {
-                        this.mode = "P";
-                    };
-                    MeshEditor.prototype.enableEdge = function () {
-                        this.mode = "E";
-                    };
-                    MeshEditor.prototype.enableFace = function () {
-                        this.mode = "F";
+                        return ec;
                     };
                     MeshEditor.prototype.createFaceSelector_old = function (scene) {
                         var fs = this.createTriangle("selector", 1, scene);
@@ -92,11 +125,8 @@ var org;
                     };
                     MeshEditor.prototype.createFaceSelector = function (scene) {
                         var fs = Mesh.CreateLines("edgeSelector", [new Vector3(-1, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 0, 1), new Vector3(-1, 0, 0)], scene);
-                        var edgeMat = new StandardMaterial("edgeMat", scene);
-                        edgeMat.diffuseColor = Color3.Black();
-                        edgeMat.emissiveColor = Color3.Black();
-                        fs.material = edgeMat;
-                        fs.visibility = 1;
+                        fs.color = Color3.Black();
+                        fs.visibility = 0;
                         fs.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
                         fs.renderingGroupId = 1;
                         return fs;
@@ -106,6 +136,7 @@ var org;
                         es.color = Color3.Black();
                         es.isPickable = false;
                         es.renderingGroupId = 1;
+                        es.visibility = 0;
                         es.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
                         return es;
                     };
@@ -137,7 +168,6 @@ var org;
                         verts[10] = verts[1];
                         verts[11] = verts[2];
                         faceSelector.setVerticesData(VertexBuffer.PositionKind, verts, true);
-                        this.ec.switchTo(faceSelector, true);
                     };
                     MeshEditor.prototype.updateFacePosition = function (faceId, faceSelector) {
                         var i = faceId * 3;
@@ -323,7 +353,7 @@ var org;
                         var chr = String.fromCharCode(event.keyCode);
                         if (event.keyCode === 27) {
                         }
-                        if (chr === "F") {
+                        if (chr === "Z") {
                             this.camera.target = this.ec.getPosition();
                         }
                         if (chr === "1") {
@@ -342,6 +372,15 @@ var org;
                         }
                         if (chr === "W") {
                             this.mesh.material.wireframe = !this.mesh.material.wireframe;
+                        }
+                        if (chr == "F") {
+                            this.enableFace();
+                        }
+                        if (chr == "E") {
+                            this.enableEdge();
+                        }
+                        if (chr == "P") {
+                            this.enablePoint();
                         }
                     };
                     MeshEditor.prototype.createTriangle = function (name, w, scene) {

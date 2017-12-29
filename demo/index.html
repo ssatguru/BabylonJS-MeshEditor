@@ -66,11 +66,14 @@
         <div id="controls">
             Key <br>
             W : toggle wireframe <br>
+            F : switch to Face mode <br>
+            E : switch to Edge mode <br>
+            P : switch to Point mode <br>
             1 : translate <br>
             2 : rotate<br>
             3 : scale<br>
             L : toggle local/global axes<br>
-            F : focus<br>
+            Z : zoom/focus<br>
             <br>
             Mouse<br>
             right click : select face<br>
@@ -106,8 +109,8 @@
 
             function drawAxes(scene){
                 var xAxis = BABYLON.Mesh.CreateLines("xAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(20,0,0)],scene);
-                let yAxis = BABYLON.Mesh.CreateLines("xAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,20,0)],scene);
-                let zAxis = BABYLON.Mesh.CreateLines("xAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,20)],scene);
+                let yAxis = BABYLON.Mesh.CreateLines("yAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,20,0)],scene);
+                let zAxis = BABYLON.Mesh.CreateLines("zAxis",[new BABYLON.Vector3(0,0,0),new BABYLON.Vector3(0,0,20)],scene);
 
                 xAxis.color = new BABYLON.Color3(1,0,0);
                 yAxis.color = new BABYLON.Color3(0,1,0);

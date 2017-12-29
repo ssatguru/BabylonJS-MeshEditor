@@ -6,12 +6,14 @@ declare namespace org.ssatguru.babylonjs.component {
     import Scene = BABYLON.Scene;
     import EditControl = org.ssatguru.babylonjs.component.EditControl;
     class MeshEditor {
+        camera: Camera;
+        canvas: HTMLCanvasElement;
+        scene: Scene;
         vertices: number[] | Float32Array;
         faceVertices: IndicesArray;
         mesh: Mesh;
         facePicked: number;
         ec: EditControl;
-        camera: Camera;
         mode: String;
         faceSelector: Mesh;
         edgeSelector: Mesh;
@@ -21,6 +23,7 @@ declare namespace org.ssatguru.babylonjs.component {
         enableEdge(): void;
         enableFace(): void;
         constructor(mesh: Mesh, camera: Camera, canvas: HTMLCanvasElement, scene: Scene);
+        private createEditControl(mesh, camera, canvas);
         private createFaceSelector_old(scene);
         private createFaceSelector(scene);
         private createEdgeSelector(scene);

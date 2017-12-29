@@ -20,12 +20,16 @@ namespace org.ssatguru.babylonjs.component {
 
     export class MeshEditor {
 
+        camera: Camera;
+        canvas:HTMLCanvasElement;
+        scene:Scene;
+        
         vertices: number[]|Float32Array;
         faceVertices: IndicesArray;
         mesh: Mesh;
         facePicked: number=0;
-        ec: EditControl;
-        camera: Camera;
+        ec: EditControl=null;
+        
         mode: String="F";
 
 
@@ -36,18 +40,33 @@ namespace org.ssatguru.babylonjs.component {
         selectedMesh: Mesh;
 
         public enablePoint() {
+            if (this.mode=="P") return;
             this.mode="P";
+            this.faceSelector.visibility=0;
+            this.edgeSelector.visibility=0;
+            this.ec.hide();
         }
         public enableEdge() {
+            if (this.mode=="E") return;
             this.mode="E";
+            this.faceSelector.visibility=0;
+            this.pointSelector.visibility=0;
+            this.ec.hide();
+            
         }
         public enableFace() {
+            if (this.mode=="F") return;
             this.mode="F";
+            this.edgeSelector.visibility=0;
+            this.pointSelector.visibility=0;
+            this.ec.hide();
         }
 
         constructor(mesh: Mesh,camera: Camera,canvas: HTMLCanvasElement,scene: Scene) {
-            this.camera=camera;
             this.mesh=mesh;
+            this.camera=camera;
+            this.canvas=canvas;
+            this.scene=scene;
 
             window.addEventListener("keyup",(e) => {return this.onKeyUp(e)},false);
 
@@ -62,47 +81,18 @@ namespace org.ssatguru.babylonjs.component {
             //            this.vrtColors=new Array(this.vertices.length*4/3);
             //            this.clearColors(this.vrtColors);
 
-
-
-
-            if(this.mode=="F") {
-                this.faceSelector=this.createFaceSelector(scene);
-                this.ec=new EditControl(this.faceSelector,camera,canvas,0.5,true);
-                //????
-//                this.facePicked=90;
-//                this.highLightFace(this.facePicked,this.faceSelector);
-//                this.highLightFace(this.facePicked,this.faceSelector);
-            } else if(this.mode=="E") {
-                this.edgeSelector=this.createEdgeSelector(scene);
-                this.ec=new EditControl(this.edgeSelector,camera,canvas,0.5,true);
-            } else if(this.mode=="P"){
-                console.log("point selectot");
-                this.pointSelector = new Mesh("pointSelector",scene);
-                this.ec = new EditControl(this.pointSelector,camera,canvas,0.5,true);
-            }
-
-            this.ec.setLocal(true);
-            this.ec.enableTranslation();
-
-            this.ec.addActionListener((t) => {
-                if(this.mode=="F") {
-                    this.updateFacePosition(this.facePicked,this.faceSelector);
-                }else if (this.mode=="E"){
-                    this.updateEdgePosition(this.facePicked,this.edgeSelector);
-                }else if (this.mode=="P"){
-                    this.updatePointPosition(this.facePicked,this.pointSelector);
-                }
-                this.mesh.updateVerticesData(VertexBuffer.PositionKind,this.vertices,false,false);
-            })
-
+            this.faceSelector=this.createFaceSelector(scene);
+            this.edgeSelector=this.createEdgeSelector(scene);
+            this.pointSelector=new Mesh("pointSelector",scene);
+            this.ec=null;
             scene.onPointerDown=(evt,pickResult) => {
 
                 //select only on right click
                 if(!(evt.button==2)) return;
                 if(pickResult.hit) {
+                    console.log(pickResult.pickedMesh);
                     if(pickResult.pickedMesh!=this.mesh) return;
                     this.facePicked=pickResult.faceId;
-                    console.log("face id "+this.facePicked);
 
                     //                    let f: number=pickResult.faceId;
                     //
@@ -112,11 +102,46 @@ namespace org.ssatguru.babylonjs.component {
                     //                        next=f-1;
                     //                    }
                     //                    console.log("faceId "+f+","+next);
-                    if(this.mode=="F") this.highLightFace(this.facePicked,this.faceSelector);
-                    else if(this.mode=="E") this.highLightEdge(this.facePicked,pickResult.pickedPoint,this.edgeSelector);
-                    else if(this.mode=="P") this.highLightPoint(this.facePicked,pickResult.pickedPoint,this.pointSelector);
+                    let selector:Mesh=null;
+                    if(this.mode=="F") {
+                        selector=this.faceSelector;
+                        this.highLightFace(this.facePicked,selector);
+                    }else if(this.mode=="E"){ 
+                        selector=this.edgeSelector;
+                        this.highLightEdge(this.facePicked,pickResult.pickedPoint,selector);
+                    }else if(this.mode=="P") {
+                        selector=this.pointSelector;
+                        this.highLightPoint(this.facePicked,pickResult.pickedPoint,selector);
+                    }
+                    if (selector!=null){
+                        selector.visibility=1;
+                        if (this.ec==null){
+                            console.log("creating ec");
+                            this.ec=this.createEditControl(selector,this.camera,this.canvas);
+                        }else{
+                            if (this.ec.isHidden()) this.ec.show();
+                            this.ec.switchTo(selector,true);
+                        }
+                    }
                 }
             };
+        }
+
+        private createEditControl(mesh: Mesh,camera: Camera,canvas: HTMLCanvasElement): EditControl {
+            let ec=new EditControl(mesh,camera,canvas,0.5,true);
+            ec.setLocal(true);
+            ec.enableTranslation();
+            ec.addActionListener((t) => {
+                if(this.mode=="F") {
+                    this.updateFacePosition(this.facePicked,this.faceSelector);
+                } else if(this.mode=="E") {
+                    this.updateEdgePosition(this.facePicked,this.edgeSelector);
+                } else if(this.mode=="P") {
+                    this.updatePointPosition(this.facePicked,this.pointSelector);
+                }
+                this.mesh.updateVerticesData(VertexBuffer.PositionKind,this.vertices,false,false);
+            })
+            return ec;
         }
 
         private createFaceSelector_old(scene: Scene): Mesh {
@@ -129,13 +154,9 @@ namespace org.ssatguru.babylonjs.component {
             return fs;
         }
         private createFaceSelector(scene: Scene): Mesh {
-            let fs: Mesh=Mesh.CreateLines("edgeSelector",[new Vector3(-1,0,0),new Vector3(1,0,0),new Vector3(0,0,1),new Vector3(-1,0,0)],scene);
-            //fs.color=Color3.Black();
-            let edgeMat: StandardMaterial=new StandardMaterial("edgeMat",scene);
-            edgeMat.diffuseColor=Color3.Black();
-            edgeMat.emissiveColor=Color3.Black();
-            fs.material=edgeMat;
-            fs.visibility=1;
+            let fs: LinesMesh=Mesh.CreateLines("edgeSelector",[new Vector3(-1,0,0),new Vector3(1,0,0),new Vector3(0,0,1),new Vector3(-1,0,0)],scene);
+            fs.color=Color3.Black();
+            fs.visibility=0;
             fs.markVerticesDataAsUpdatable(VertexBuffer.PositionKind,true);
             fs.renderingGroupId=1;
             return fs;
@@ -145,6 +166,7 @@ namespace org.ssatguru.babylonjs.component {
             es.color=Color3.Black();
             es.isPickable=false;
             es.renderingGroupId=1;
+            es.visibility=0;
             es.markVerticesDataAsUpdatable(VertexBuffer.PositionKind,true);
             return es;
         }
@@ -152,7 +174,7 @@ namespace org.ssatguru.babylonjs.component {
         v1v: Vector3=new Vector3(0,0,0);
         v2v: Vector3=new Vector3(0,0,0);
         v3v: Vector3=new Vector3(0,0,0);
-        
+
         private highLightFace(faceId: number,faceSelector: Mesh) {
             console.log("highLightFace");
             this.getFaceVertices(faceId,this.mesh,this.faceVertices);
@@ -192,7 +214,7 @@ namespace org.ssatguru.babylonjs.component {
             verts[11]=verts[2];
 
             faceSelector.setVerticesData(VertexBuffer.PositionKind,verts,true);
-            this.ec.switchTo(faceSelector,true);
+            //this.ec.switchTo(faceSelector,true);
 
             //face vertices color
             //            let cc1=v1*4;
@@ -203,7 +225,7 @@ namespace org.ssatguru.babylonjs.component {
             //            this.setColor(cc3,this.vrtColors,color);
             //            this.mesh.setVerticesData(VertexBuffer.ColorKind,this.vrtColors,true);
         }
-        
+
         pTemp: Vector3=Vector3.Zero();
         private updateFacePosition(faceId: number,faceSelector: Mesh) {
             let i: number=faceId*3;
@@ -247,8 +269,8 @@ namespace org.ssatguru.babylonjs.component {
             v[v3s+1]=this.pTemp.y;
             v[v3s+2]=this.pTemp.z;
         };
-        
-        
+
+
 
         private highLightEdge(faceId: number,pickPoint: Vector3,edgeSelector: Mesh) {
             console.log("highLightEdge");
@@ -258,18 +280,18 @@ namespace org.ssatguru.babylonjs.component {
             let ev2: Vector3;
             //ev3 will be used to get rotation
             let ev3: Vector3;
-            
+
             let h1=this.getDistance(pickPoint,this.v1v,this.v2v);
             let h2=this.getDistance(pickPoint,this.v2v,this.v3v);
             let h3=this.getDistance(pickPoint,this.v3v,this.v1v);
-           
+
             let min_h=Math.min(h1,h2,h3);
 
-            if (min_h==h1){ ev1=this.v1v;ev2=this.v2v;ev3=this.v3v;this.ep1=1;this.ep2=2;}
-            if (min_h==h2){ ev1=this.v2v;ev2=this.v3v;ev3=this.v1v;this.ep1=2;this.ep2=3;}
-            if (min_h==h3){ ev1=this.v3v;ev2=this.v1v;ev3=this.v2v;this.ep1=3;this.ep2=1;}
+            if(min_h==h1) {ev1=this.v1v; ev2=this.v2v; ev3=this.v3v; this.ep1=1; this.ep2=2;}
+            if(min_h==h2) {ev1=this.v2v; ev2=this.v3v; ev3=this.v1v; this.ep1=2; this.ep2=3;}
+            if(min_h==h3) {ev1=this.v3v; ev2=this.v1v; ev3=this.v2v; this.ep1=3; this.ep2=1;}
 
- 
+
             //set selector rotation so it is parallel to the triangular face selected
             let a1: Vector3=ev1.subtract(ev2);
             let a2: Vector3=ev3.subtract(ev2);
@@ -296,9 +318,9 @@ namespace org.ssatguru.babylonjs.component {
             edgeSelector.setVerticesData(VertexBuffer.PositionKind,verts,true);
             this.ec.switchTo(edgeSelector,true);
         }
-        
-        private ep1:number;
-        private ep2:number;
+
+        private ep1: number;
+        private ep2: number;
         private updateEdgePosition(faceId: number,edgeSelector: Mesh) {
             let i: number=faceId*3;
 
@@ -333,7 +355,7 @@ namespace org.ssatguru.babylonjs.component {
             v[v2s+1]=this.pTemp.y;
             v[v2s+2]=this.pTemp.z;
         };
-        
+
         private p;
         private highLightPoint(faceId: number,pickPoint: Vector3,pointSelector: Mesh) {
 
@@ -349,11 +371,11 @@ namespace org.ssatguru.babylonjs.component {
             let l1=pickPoint.subtract(this.v1v).length();
             let l2=pickPoint.subtract(this.v2v).length();
             let l3=pickPoint.subtract(this.v3v).length();
-            
+
             let min_l=Math.min(l1,l2,l3);
-            if (min_l==l1){this.p=1;p1=this.v1v;p2=this.v3v;p3=this.v2v;}
-            if (min_l==l2){this.p=2;p1=this.v2v;p2=this.v1v;p3=this.v3v;}
-            if (min_l==l3){this.p=3;p1=this.v3v;p2=this.v2v;p3=this.v1v;}
+            if(min_l==l1) {this.p=1; p1=this.v1v; p2=this.v3v; p3=this.v2v;}
+            if(min_l==l2) {this.p=2; p1=this.v2v; p2=this.v1v; p3=this.v3v;}
+            if(min_l==l3) {this.p=3; p1=this.v3v; p2=this.v2v; p3=this.v1v;}
 
             //set selector rotation so that it's Y axis(up) is parallel to the selected face normal
             let a1: Vector3=p2.subtract(p1);
@@ -364,7 +386,7 @@ namespace org.ssatguru.babylonjs.component {
 
             this.ec.switchTo(pointSelector,true);
         }
-        
+
         private updatePointPosition(faceId: number,pointSelector: Mesh) {
             let i: number=faceId*3;
 
@@ -374,7 +396,7 @@ namespace org.ssatguru.babylonjs.component {
             //start of the three vertices
             let v=this.vertices;
             let v1s=v1*3;
-            
+
             //now lets get the selector vertex in mesh's local space.
             let mm_i: Matrix=this.mesh.getWorldMatrix().clone().invert();
             Vector3.TransformCoordinatesToRef(pointSelector.position,mm_i,this.pTemp);
@@ -382,9 +404,9 @@ namespace org.ssatguru.babylonjs.component {
             v[v1s]=this.pTemp.x;
             v[v1s+1]=this.pTemp.y;
             v[v1s+2]=this.pTemp.z;
-           
+
         };
-        
+
         private getFaceVertices(faceId: number,mesh: Mesh,faceVertices: IndicesArray) {
             let i: number=faceId*3;
 
@@ -435,17 +457,14 @@ namespace org.ssatguru.babylonjs.component {
         private onKeyUp(e: Event) {
             var event: KeyboardEvent=<KeyboardEvent>e;
             var chr: string=String.fromCharCode(event.keyCode);
-            
+
             //esc
             if(event.keyCode===27) {
                 //this.ec.disableTranslation();
             }
 
-            if(chr==="F") {
+            if(chr==="Z") {
                 (<ArcRotateCamera>this.camera).target=this.ec.getPosition();
-//                (<ArcRotateCamera>this.camera).target.x=this.faceSelector.position.x;
-//                (<ArcRotateCamera>this.camera).target.y=this.faceSelector.position.y;
-//                (<ArcRotateCamera>this.camera).target.z=this.faceSelector.position.z;
             }
             if(chr==="1") {
                 this.ec.enableTranslation();
@@ -463,6 +482,15 @@ namespace org.ssatguru.babylonjs.component {
             if(chr==="W") {
                 this.mesh.material.wireframe=!this.mesh.material.wireframe;
             }
+            if (chr=="F"){
+                this.enableFace();
+            }
+            if (chr=="E"){
+                this.enableEdge();
+            }
+            if (chr=="P"){
+                this.enablePoint();
+            }
         }
 
         private createTriangle(name: string,w: number,scene: Scene) {
@@ -471,8 +499,8 @@ namespace org.ssatguru.babylonjs.component {
             var t=s.build(true);
             return t;
         }
-        
-        
+
+
         private getRotation(a1: Vector3,a2: Vector3): Vector3 {
             //get three orthogonal axis a1,v,a3
             //where v is perpendicular to a1 and a2
@@ -485,14 +513,14 @@ namespace org.ssatguru.babylonjs.component {
         /**
          * returns distance of point p1 from line segment formed by points p2 and p3
          */
-        private getDistance(p1:Vector3,p2:Vector3,p3:Vector3):number{
+        private getDistance(p1: Vector3,p2: Vector3,p3: Vector3): number {
             let v1: Vector3=p1.subtract(p2);
             let v2: Vector3=p3.subtract(p2);
             //angle between v1 & v2
             let angle: number=Math.acos((Vector3.Dot(v1,v2.normalize())/v1.length()));
             return v1.length()*Math.sin(angle);
-            
-            
+
+
         }
 
     }
