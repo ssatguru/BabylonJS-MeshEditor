@@ -8,6 +8,7 @@ var org;
             (function (component) {
                 var Color3 = BABYLON.Color3;
                 var Vector3 = BABYLON.Vector3;
+                var Mesh = BABYLON.Mesh;
                 var StandardMaterial = BABYLON.StandardMaterial;
                 var Path2 = BABYLON.Path2;
                 var VertexBuffer = BABYLON.VertexBuffer;
@@ -16,30 +17,42 @@ var org;
                     function MeshEditor(mesh, camera, canvas, scene) {
                         var _this = this;
                         this.facePicked = 0;
-                        this.pTemp = Vector3.Zero();
+                        this.mode = "F";
                         this.v1v = new Vector3(0, 0, 0);
                         this.v2v = new Vector3(0, 0, 0);
                         this.v3v = new Vector3(0, 0, 0);
+                        this.pTemp = Vector3.Zero();
                         this.camera = camera;
                         this.mesh = mesh;
                         window.addEventListener("keyup", function (e) { return _this.onKeyUp(e); }, false);
                         this.mesh.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
                         this.vertices = mesh.getVerticesData(VertexBuffer.PositionKind);
                         this.faceVertices = mesh.getIndices();
-                        this.faceSelector = this.createTriangle("selector", 1, scene);
-                        this.faceSelector.material = new StandardMaterial("impactMat", scene);
-                        this.faceSelector.material.diffuseColor = Color3.Gray();
-                        this.faceSelector.visibility = 0.8;
-                        this.faceSelector.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
-                        this.faceSelector.renderingGroupId = 1;
-                        this.ec = new EditControl(this.faceSelector, camera, canvas, 0.5, true);
+                        if (this.mode == "F") {
+                            this.faceSelector = this.createFaceSelector(scene);
+                            this.ec = new EditControl(this.faceSelector, camera, canvas, 0.5, true);
+                        }
+                        else if (this.mode == "E") {
+                            this.edgeSelector = this.createEdgeSelector(scene);
+                            this.ec = new EditControl(this.edgeSelector, camera, canvas, 0.5, true);
+                        }
+                        else if (this.mode == "P") {
+                            console.log("point selectot");
+                            this.pointSelector = new Mesh("pointSelector", scene);
+                            this.ec = new EditControl(this.pointSelector, camera, canvas, 0.5, true);
+                        }
                         this.ec.setLocal(true);
                         this.ec.enableTranslation();
-                        this.facePicked = 90;
-                        this.highLightFace(this.facePicked, this.faceSelector);
-                        this.highLightFace(this.facePicked, this.faceSelector);
                         this.ec.addActionListener(function (t) {
-                            _this.updateFacePosition(_this.facePicked, _this.faceSelector);
+                            if (_this.mode == "F") {
+                                _this.updateFacePosition(_this.facePicked, _this.faceSelector);
+                            }
+                            else if (_this.mode == "E") {
+                                _this.updateEdgePosition(_this.facePicked, _this.edgeSelector);
+                            }
+                            else if (_this.mode == "P") {
+                                _this.updatePointPosition(_this.facePicked, _this.pointSelector);
+                            }
                             _this.mesh.updateVerticesData(VertexBuffer.PositionKind, _this.vertices, false, false);
                         });
                         scene.onPointerDown = function (evt, pickResult) {
@@ -50,10 +63,82 @@ var org;
                                     return;
                                 _this.facePicked = pickResult.faceId;
                                 console.log("face id " + _this.facePicked);
-                                _this.highLightFace(_this.facePicked, _this.faceSelector);
+                                if (_this.mode == "F")
+                                    _this.highLightFace(_this.facePicked, _this.faceSelector);
+                                else if (_this.mode == "E")
+                                    _this.highLightEdge(_this.facePicked, pickResult.pickedPoint, _this.edgeSelector);
+                                else if (_this.mode == "P")
+                                    _this.highLightPoint(_this.facePicked, pickResult.pickedPoint, _this.pointSelector);
                             }
                         };
                     }
+                    MeshEditor.prototype.enablePoint = function () {
+                        this.mode = "P";
+                    };
+                    MeshEditor.prototype.enableEdge = function () {
+                        this.mode = "E";
+                    };
+                    MeshEditor.prototype.enableFace = function () {
+                        this.mode = "F";
+                    };
+                    MeshEditor.prototype.createFaceSelector_old = function (scene) {
+                        var fs = this.createTriangle("selector", 1, scene);
+                        fs.material = new StandardMaterial("impactMat", scene);
+                        fs.material.diffuseColor = Color3.Gray();
+                        fs.visibility = 0.8;
+                        fs.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
+                        fs.renderingGroupId = 1;
+                        return fs;
+                    };
+                    MeshEditor.prototype.createFaceSelector = function (scene) {
+                        var fs = Mesh.CreateLines("edgeSelector", [new Vector3(-1, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 0, 1), new Vector3(-1, 0, 0)], scene);
+                        var edgeMat = new StandardMaterial("edgeMat", scene);
+                        edgeMat.diffuseColor = Color3.Black();
+                        edgeMat.emissiveColor = Color3.Black();
+                        fs.material = edgeMat;
+                        fs.visibility = 1;
+                        fs.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
+                        fs.renderingGroupId = 1;
+                        return fs;
+                    };
+                    MeshEditor.prototype.createEdgeSelector = function (scene) {
+                        var es = Mesh.CreateLines("edgeSelector", [new Vector3(-1, 0, 0), new Vector3(1, 0, 0)], scene);
+                        es.color = Color3.Black();
+                        es.isPickable = false;
+                        es.renderingGroupId = 1;
+                        es.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
+                        return es;
+                    };
+                    MeshEditor.prototype.highLightFace = function (faceId, faceSelector) {
+                        console.log("highLightFace");
+                        this.getFaceVertices(faceId, this.mesh, this.faceVertices);
+                        var a1 = this.v1v.subtract(this.v2v);
+                        var a2 = this.v3v.subtract(this.v2v);
+                        faceSelector.rotation = this.getRotation(a1, a2);
+                        faceSelector.position.x = (this.v1v.x + this.v2v.x + this.v3v.x) / 3;
+                        faceSelector.position.y = (this.v1v.y + this.v2v.y + this.v3v.y) / 3;
+                        faceSelector.position.z = (this.v1v.z + this.v2v.z + this.v3v.z) / 3;
+                        var verts = faceSelector.getVerticesData(VertexBuffer.PositionKind);
+                        console.log(verts.length);
+                        var sm_i = faceSelector.getWorldMatrix().clone().invert();
+                        Vector3.TransformCoordinatesToRef(this.v1v, sm_i, this.pTemp);
+                        verts[0] = this.pTemp.x;
+                        verts[1] = this.pTemp.y;
+                        verts[2] = this.pTemp.z;
+                        Vector3.TransformCoordinatesToRef(this.v2v, sm_i, this.pTemp);
+                        verts[3] = this.pTemp.x;
+                        verts[4] = this.pTemp.y;
+                        verts[5] = this.pTemp.z;
+                        Vector3.TransformCoordinatesToRef(this.v3v, sm_i, this.pTemp);
+                        verts[6] = this.pTemp.x;
+                        verts[7] = this.pTemp.y;
+                        verts[8] = this.pTemp.z;
+                        verts[9] = verts[0];
+                        verts[10] = verts[1];
+                        verts[11] = verts[2];
+                        faceSelector.setVerticesData(VertexBuffer.PositionKind, verts, true);
+                        this.ec.switchTo(faceSelector, true);
+                    };
                     MeshEditor.prototype.updateFacePosition = function (faceId, faceSelector) {
                         var i = faceId * 3;
                         var v1 = this.faceVertices[i];
@@ -83,12 +168,129 @@ var org;
                         v[v3s + 2] = this.pTemp.z;
                     };
                     ;
-                    MeshEditor.prototype.highLightFace = function (faceId, faceSelector) {
+                    MeshEditor.prototype.highLightEdge = function (faceId, pickPoint, edgeSelector) {
+                        console.log("highLightEdge");
+                        this.getFaceVertices(faceId, this.mesh, this.faceVertices);
+                        var ev1;
+                        var ev2;
+                        var ev3;
+                        var h1 = this.getDistance(pickPoint, this.v1v, this.v2v);
+                        var h2 = this.getDistance(pickPoint, this.v2v, this.v3v);
+                        var h3 = this.getDistance(pickPoint, this.v3v, this.v1v);
+                        var min_h = Math.min(h1, h2, h3);
+                        if (min_h == h1) {
+                            ev1 = this.v1v;
+                            ev2 = this.v2v;
+                            ev3 = this.v3v;
+                            this.ep1 = 1;
+                            this.ep2 = 2;
+                        }
+                        if (min_h == h2) {
+                            ev1 = this.v2v;
+                            ev2 = this.v3v;
+                            ev3 = this.v1v;
+                            this.ep1 = 2;
+                            this.ep2 = 3;
+                        }
+                        if (min_h == h3) {
+                            ev1 = this.v3v;
+                            ev2 = this.v1v;
+                            ev3 = this.v2v;
+                            this.ep1 = 3;
+                            this.ep2 = 1;
+                        }
+                        var a1 = ev1.subtract(ev2);
+                        var a2 = ev3.subtract(ev2);
+                        edgeSelector.rotation = this.getRotation(a1, a2);
+                        edgeSelector.position.x = (ev1.x + ev2.x) / 2;
+                        edgeSelector.position.y = (ev1.y + ev2.y) / 2;
+                        edgeSelector.position.z = (ev1.z + ev2.z) / 2;
+                        var verts = edgeSelector.getVerticesData(VertexBuffer.PositionKind);
+                        var sm_i = edgeSelector.getWorldMatrix().clone().invert();
+                        Vector3.TransformCoordinatesToRef(ev1, sm_i, this.pTemp);
+                        verts[0] = this.pTemp.x;
+                        verts[1] = this.pTemp.y;
+                        verts[2] = this.pTemp.z;
+                        Vector3.TransformCoordinatesToRef(ev2, sm_i, this.pTemp);
+                        verts[3] = this.pTemp.x;
+                        verts[4] = this.pTemp.y;
+                        verts[5] = this.pTemp.z;
+                        edgeSelector.setVerticesData(VertexBuffer.PositionKind, verts, true);
+                        this.ec.switchTo(edgeSelector, true);
+                    };
+                    MeshEditor.prototype.updateEdgePosition = function (faceId, edgeSelector) {
                         var i = faceId * 3;
-                        var v1 = this.faceVertices[i];
-                        var v2 = this.faceVertices[i + 1];
-                        var v3 = this.faceVertices[i + 2];
-                        var mm = this.mesh.getWorldMatrix();
+                        var v1 = this.faceVertices[i + this.ep1 - 1];
+                        var v2 = this.faceVertices[i + this.ep2 - 1];
+                        var v = this.vertices;
+                        var v1s = v1 * 3;
+                        var v2s = v2 * 3;
+                        var verts = edgeSelector.getVerticesData(VertexBuffer.PositionKind);
+                        var sm = edgeSelector.getWorldMatrix();
+                        var mm_i = this.mesh.getWorldMatrix().clone().invert();
+                        Vector3.TransformCoordinatesFromFloatsToRef(verts[0], verts[1], verts[2], sm, this.pTemp);
+                        Vector3.TransformCoordinatesFromFloatsToRef(this.pTemp.x, this.pTemp.y, this.pTemp.z, mm_i, this.pTemp);
+                        v[v1s] = this.pTemp.x;
+                        v[v1s + 1] = this.pTemp.y;
+                        v[v1s + 2] = this.pTemp.z;
+                        Vector3.TransformCoordinatesFromFloatsToRef(verts[3], verts[4], verts[5], sm, this.pTemp);
+                        Vector3.TransformCoordinatesFromFloatsToRef(this.pTemp.x, this.pTemp.y, this.pTemp.z, mm_i, this.pTemp);
+                        v[v2s] = this.pTemp.x;
+                        v[v2s + 1] = this.pTemp.y;
+                        v[v2s + 2] = this.pTemp.z;
+                    };
+                    ;
+                    MeshEditor.prototype.highLightPoint = function (faceId, pickPoint, pointSelector) {
+                        this.getFaceVertices(faceId, this.mesh, this.faceVertices);
+                        var p1;
+                        var p2;
+                        var p3;
+                        var l1 = pickPoint.subtract(this.v1v).length();
+                        var l2 = pickPoint.subtract(this.v2v).length();
+                        var l3 = pickPoint.subtract(this.v3v).length();
+                        var min_l = Math.min(l1, l2, l3);
+                        if (min_l == l1) {
+                            this.p = 1;
+                            p1 = this.v1v;
+                            p2 = this.v3v;
+                            p3 = this.v2v;
+                        }
+                        if (min_l == l2) {
+                            this.p = 2;
+                            p1 = this.v2v;
+                            p2 = this.v1v;
+                            p3 = this.v3v;
+                        }
+                        if (min_l == l3) {
+                            this.p = 3;
+                            p1 = this.v3v;
+                            p2 = this.v2v;
+                            p3 = this.v1v;
+                        }
+                        var a1 = p2.subtract(p1);
+                        var a2 = p3.subtract(p1);
+                        pointSelector.rotation = this.getRotation(a1, a2);
+                        pointSelector.position = p1;
+                        this.ec.switchTo(pointSelector, true);
+                    };
+                    MeshEditor.prototype.updatePointPosition = function (faceId, pointSelector) {
+                        var i = faceId * 3;
+                        var v1 = this.faceVertices[i + this.p - 1];
+                        var v = this.vertices;
+                        var v1s = v1 * 3;
+                        var mm_i = this.mesh.getWorldMatrix().clone().invert();
+                        Vector3.TransformCoordinatesToRef(pointSelector.position, mm_i, this.pTemp);
+                        v[v1s] = this.pTemp.x;
+                        v[v1s + 1] = this.pTemp.y;
+                        v[v1s + 2] = this.pTemp.z;
+                    };
+                    ;
+                    MeshEditor.prototype.getFaceVertices = function (faceId, mesh, faceVertices) {
+                        var i = faceId * 3;
+                        var v1 = faceVertices[i];
+                        var v2 = faceVertices[i + 1];
+                        var v3 = faceVertices[i + 2];
+                        var mm = mesh.getWorldMatrix();
                         var v = this.vertices;
                         var v1s = v1 * 3;
                         var v2s = v2 * 3;
@@ -96,28 +298,6 @@ var org;
                         Vector3.TransformCoordinatesFromFloatsToRef(v[v1s], v[v1s + 1], v[v1s + 2], mm, this.v1v);
                         Vector3.TransformCoordinatesFromFloatsToRef(v[v2s], v[v2s + 1], v[v2s + 2], mm, this.v2v);
                         Vector3.TransformCoordinatesFromFloatsToRef(v[v3s], v[v3s + 1], v[v3s + 2], mm, this.v3v);
-                        var a1 = this.v1v.subtract(this.v2v);
-                        var a2 = this.v3v.subtract(this.v2v);
-                        this.faceSelector.rotation = this.getRotation(a1, a2);
-                        faceSelector.position.x = (this.v1v.x + this.v2v.x + this.v3v.x) / 3;
-                        faceSelector.position.y = (this.v1v.y + this.v2v.y + this.v3v.y) / 3;
-                        faceSelector.position.z = (this.v1v.z + this.v2v.z + this.v3v.z) / 3;
-                        var verts = faceSelector.getVerticesData(VertexBuffer.PositionKind);
-                        var sm_i = faceSelector.getWorldMatrix().clone().invert();
-                        Vector3.TransformCoordinatesToRef(this.v1v, sm_i, this.pTemp);
-                        verts[0] = this.pTemp.x;
-                        verts[1] = this.pTemp.y;
-                        verts[2] = this.pTemp.z;
-                        Vector3.TransformCoordinatesToRef(this.v2v, sm_i, this.pTemp);
-                        verts[3] = this.pTemp.x;
-                        verts[4] = this.pTemp.y;
-                        verts[5] = this.pTemp.z;
-                        Vector3.TransformCoordinatesToRef(this.v3v, sm_i, this.pTemp);
-                        verts[6] = this.pTemp.x;
-                        verts[7] = this.pTemp.y;
-                        verts[8] = this.pTemp.z;
-                        faceSelector.setVerticesData(VertexBuffer.PositionKind, verts, true);
-                        this.ec.switchTo(faceSelector, true);
                     };
                     MeshEditor.prototype.setMaterial = function (mesh, color, scene) {
                         mesh.material = new StandardMaterial("", scene);
@@ -144,9 +324,7 @@ var org;
                         if (event.keyCode === 27) {
                         }
                         if (chr === "F") {
-                            this.camera.target.x = this.faceSelector.position.x;
-                            this.camera.target.y = this.faceSelector.position.y;
-                            this.camera.target.z = this.faceSelector.position.z;
+                            this.camera.target = this.ec.getPosition();
                         }
                         if (chr === "1") {
                             this.ec.enableTranslation();
@@ -176,6 +354,12 @@ var org;
                         Vector3.CrossToRef(a1, a2, this.pTemp);
                         var a3 = Vector3.Cross(this.pTemp, a1);
                         return Vector3.RotationFromAxis(a3, this.pTemp, a1);
+                    };
+                    MeshEditor.prototype.getDistance = function (p1, p2, p3) {
+                        var v1 = p1.subtract(p2);
+                        var v2 = p3.subtract(p2);
+                        var angle = Math.acos((Vector3.Dot(v1, v2.normalize()) / v1.length()));
+                        return v1.length() * Math.sin(angle);
                     };
                     return MeshEditor;
                 }());
