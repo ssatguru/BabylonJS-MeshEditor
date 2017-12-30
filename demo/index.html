@@ -24,6 +24,7 @@
                 background-color: #fff;
                 left: 10px;
                 top: 10px;
+                margin:5px;
             }
 
             #renderCanvas {
@@ -96,11 +97,11 @@
 
         <script>
 
-            var helpButton = document.getElementById("help");
-            var showHelp = function(){
+            let helpButton = document.getElementById("help");
+            let showHelp = function(){
                 var el = document.getElementById("overlay");
-                el.style.visibility = (el.style.visibility=="visible")?"hidden":"visible";
-            }
+                el.style.visibility = (el.style.visibility==="visible")?"hidden":"visible";
+            };
             helpButton.onclick = showHelp;
 
             let canvas = document.getElementById("renderCanvas");
@@ -125,7 +126,7 @@
 
             let light = new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,0),scene);
 
-            var camera = new BABYLON.ArcRotateCamera("Camera",Math.PI/4,0.4*Math.PI,15,BABYLON.Vector3.Zero(),scene);
+            let camera = new BABYLON.ArcRotateCamera("Camera",Math.PI/4,0.4*Math.PI,15,BABYLON.Vector3.Zero(),scene);
             camera.wheelPrecision = 15;
             camera.attachControl(canvas,true);
 
@@ -135,17 +136,17 @@
 
             //mesh.position.y = 1;
             mesh.rotation.x = 0.0;
-            
+
             var groundMaterial = new BABYLON.StandardMaterial("Grid Material",scene);
             groundMaterial.diffuseTexture = new BABYLON.Texture("ground.jpg",scene);
             groundMaterial.specularColor = new BABYLON.Color3(0,0,0);
             groundMaterial.specularPower = 0;
             groundMaterial.wireframe = false;
-            
+
             mesh.material = groundMaterial;
 
             let MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
-            meshEditor = new MeshEditor(mesh,camera,canvas,scene);
+            let me = new MeshEditor(mesh,camera,canvas,scene);
 
 
             //            BABYLON.SceneLoader.ImportMesh("","https://raw.githubusercontent.com/BabylonJS/MeshesLibrary/master/Dude/","dude.babylon",scene,function(newMeshes){
@@ -166,7 +167,36 @@
                 engine.resize();
             });
 
+            window.addEventListener("keyup",(e)=>{
+                return onKeyUp(e)
+            },false);
 
+            function onKeyUp(e){
+                let chr = String.fromCharCode(e.keyCode);
+                
+                if(chr==="Z"){
+                    me.focus();
+                }else if(chr==="1"){
+                    me.enableTranslation();
+                }else if(chr==="2"){
+                    me.enableRotation();
+                }else if(chr==="3"){
+                    me.enableScaling();
+                }else if(chr==="L"){
+                    if(me.isLocal())
+                        me.setSpaceWorld();
+                    else
+                        me.setSpaceLocal();
+                }else if(chr==="W"){
+                    mesh.material.wireframe = !mesh.material.wireframe;
+                }else if(chr==="F"){
+                    me.enableFace();
+                }else if(chr==="E"){
+                    me.enableEdge();
+                }else if(chr==="P"){
+                    me.enablePoint();
+                }
+            }
 
         </script>
 

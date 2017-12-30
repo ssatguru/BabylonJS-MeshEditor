@@ -27,7 +27,6 @@ var org;
                         this.camera = camera;
                         this.canvas = canvas;
                         this.scene = scene;
-                        window.addEventListener("keyup", function (e) { return _this.onKeyUp(e); }, false);
                         this.mesh.markVerticesDataAsUpdatable(VertexBuffer.PositionKind, true);
                         this.vertices = mesh.getVerticesData(VertexBuffer.PositionKind);
                         this.faceVertices = mesh.getIndices();
@@ -35,6 +34,12 @@ var org;
                         this.edgeSelector = this.createEdgeSelector(scene);
                         this.pointSelector = new Mesh("pointSelector", scene);
                         this.ec = null;
+                        scene.pointerDownPredicate = function (mesh) {
+                            if (mesh == _this.mesh)
+                                return true;
+                            else
+                                return false;
+                        };
                         scene.onPointerDown = function (evt, pickResult) {
                             if (!(evt.button == 2))
                                 return;
@@ -59,7 +64,6 @@ var org;
                                 if (selector != null) {
                                     selector.visibility = 1;
                                     if (_this.ec == null) {
-                                        console.log("creating ec");
                                         _this.ec = _this.createEditControl(selector, _this.camera, _this.canvas);
                                     }
                                     else {
@@ -348,40 +352,33 @@ var org;
                         vrtColors[cc + 2] = color.b;
                         vrtColors[cc + 3] = 0;
                     };
-                    MeshEditor.prototype.onKeyUp = function (e) {
-                        var event = e;
-                        var chr = String.fromCharCode(event.keyCode);
-                        if (event.keyCode === 27) {
-                        }
-                        if (chr === "Z") {
-                            this.camera.target = this.ec.getPosition();
-                        }
-                        if (chr === "1") {
+                    MeshEditor.prototype.enableTranslation = function () {
+                        if (this.ec != null)
                             this.ec.enableTranslation();
-                        }
-                        if (chr === "2") {
+                    };
+                    MeshEditor.prototype.enableRotation = function () {
+                        if (this.ec != null)
                             this.ec.enableRotation();
-                        }
-                        if (chr === "3") {
+                    };
+                    MeshEditor.prototype.enableScaling = function () {
+                        if (this.ec != null) {
                             this.ec.enableScaling();
                             if (!this.ec.isLocal())
                                 this.ec.setLocal(true);
                         }
-                        if (chr === "L") {
-                            this.ec.setLocal(!this.ec.isLocal());
-                        }
-                        if (chr === "W") {
-                            this.mesh.material.wireframe = !this.mesh.material.wireframe;
-                        }
-                        if (chr == "F") {
-                            this.enableFace();
-                        }
-                        if (chr == "E") {
-                            this.enableEdge();
-                        }
-                        if (chr == "P") {
-                            this.enablePoint();
-                        }
+                    };
+                    MeshEditor.prototype.setSpaceLocal = function () {
+                        this.ec.setLocal(true);
+                    };
+                    MeshEditor.prototype.setSpaceWorld = function () {
+                        this.ec.setLocal(false);
+                    };
+                    MeshEditor.prototype.isLocal = function () {
+                        return this.ec.isLocal();
+                    };
+                    MeshEditor.prototype.focus = function () {
+                        if (this.ec != null)
+                            this.camera.target = this.ec.getPosition();
                     };
                     MeshEditor.prototype.createTriangle = function (name, w, scene) {
                         var p = new Path2(w / 2, -w / 2).addLineTo(w / 2, w / 2).addLineTo(-w / 2, w / 2).addLineTo(w / 2, -w / 2);

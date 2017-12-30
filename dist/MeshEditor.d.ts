@@ -44,7 +44,13 @@ declare namespace org.ssatguru.babylonjs.component {
         private setMaterial(mesh, color, scene);
         private clearColors(vrtColors);
         private setColor(cc, vrtColors, color);
-        private onKeyUp(e);
+        enableTranslation(): void;
+        enableRotation(): void;
+        enableScaling(): void;
+        setSpaceLocal(): void;
+        setSpaceWorld(): void;
+        isLocal(): boolean;
+        focus(): void;
         private createTriangle(name, w, scene);
         private getRotation(a1, a2);
         private getDistance(p1, p2, p3);

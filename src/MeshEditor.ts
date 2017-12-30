@@ -19,7 +19,7 @@ namespace org.ssatguru.babylonjs.component {
     import EditControl=org.ssatguru.babylonjs.component.EditControl;
 
     export class MeshEditor {
-
+        
         camera: Camera;
         canvas:HTMLCanvasElement;
         scene:Scene;
@@ -31,7 +31,6 @@ namespace org.ssatguru.babylonjs.component {
         ec: EditControl=null;
         
         mode: String="F";
-
 
         faceSelector: Mesh;
         edgeSelector: Mesh;
@@ -68,8 +67,6 @@ namespace org.ssatguru.babylonjs.component {
             this.canvas=canvas;
             this.scene=scene;
 
-            window.addEventListener("keyup",(e) => {return this.onKeyUp(e)},false);
-
             this.mesh.markVerticesDataAsUpdatable(VertexBuffer.PositionKind,true);
 
             this.vertices=mesh.getVerticesData(VertexBuffer.PositionKind);
@@ -85,6 +82,11 @@ namespace org.ssatguru.babylonjs.component {
             this.edgeSelector=this.createEdgeSelector(scene);
             this.pointSelector=new Mesh("pointSelector",scene);
             this.ec=null;
+
+            scene.pointerDownPredicate=(mesh)=>{
+                if (mesh==this.mesh) return true;
+                else return false;
+            }
             scene.onPointerDown=(evt,pickResult) => {
 
                 //select only on right click
@@ -116,7 +118,6 @@ namespace org.ssatguru.babylonjs.component {
                     if (selector!=null){
                         selector.visibility=1;
                         if (this.ec==null){
-                            console.log("creating ec");
                             this.ec=this.createEditControl(selector,this.camera,this.canvas);
                         }else{
                             if (this.ec.isHidden()) this.ec.show();
@@ -453,46 +454,40 @@ namespace org.ssatguru.babylonjs.component {
             vrtColors[cc+3]=0;
 
         }
-
-        private onKeyUp(e: Event) {
-            var event: KeyboardEvent=<KeyboardEvent>e;
-            var chr: string=String.fromCharCode(event.keyCode);
-
-            //esc
-            if(event.keyCode===27) {
-                //this.ec.disableTranslation();
-            }
-
-            if(chr==="Z") {
-                (<ArcRotateCamera>this.camera).target=this.ec.getPosition();
-            }
-            if(chr==="1") {
+        
+        public enableTranslation(){
+            if (this.ec!=null)
                 this.ec.enableTranslation();
-            }
-            if(chr==="2") {
+        }
+        
+        public enableRotation(){
+            if (this.ec!=null)
                 this.ec.enableRotation();
-            }
-            if(chr==="3") {
+        }
+        
+        public enableScaling(){
+            if (this.ec!=null){
                 this.ec.enableScaling();
                 if(!this.ec.isLocal()) this.ec.setLocal(true);
             }
-            if(chr==="L") {
-                this.ec.setLocal(!this.ec.isLocal());
-            }
-            if(chr==="W") {
-                this.mesh.material.wireframe=!this.mesh.material.wireframe;
-            }
-            if (chr=="F"){
-                this.enableFace();
-            }
-            if (chr=="E"){
-                this.enableEdge();
-            }
-            if (chr=="P"){
-                this.enablePoint();
-            }
         }
-
+        
+        public setSpaceLocal(){
+            this.ec.setLocal(true);
+        }
+        public setSpaceWorld(){
+            this.ec.setLocal(false);
+        }
+        
+        public isLocal():boolean{
+            return this.ec.isLocal();
+        }
+        
+        public focus(){
+            if (this.ec!=null)
+            (<ArcRotateCamera>this.camera).target=this.ec.getPosition();
+        }
+        
         private createTriangle(name: string,w: number,scene: Scene) {
             let p: Path2=new Path2(w/2,-w/2).addLineTo(w/2,w/2).addLineTo(-w/2,w/2).addLineTo(w/2,-w/2);
             var s=new BABYLON.PolygonMeshBuilder(name,p,scene)
