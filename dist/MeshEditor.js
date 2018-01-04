@@ -101,7 +101,7 @@ var org;
                     };
                     MeshEditor.prototype.createEditControl = function (mesh, camera, canvas) {
                         var _this = this;
-                        var ec = new EditControl(mesh, camera, canvas, 0.5, true);
+                        var ec = new EditControl(mesh, camera, canvas, 0.75, true);
                         ec.setLocal(true);
                         ec.enableTranslation();
                         ec.addActionListener(function (t) {

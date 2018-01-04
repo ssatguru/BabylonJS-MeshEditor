@@ -125,6 +125,7 @@
             drawAxes(scene);
 
             let light = new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,0),scene);
+            light.intensity=0.75;
 
             let camera = new BABYLON.ArcRotateCamera("Camera",Math.PI/4,0.4*Math.PI,15,BABYLON.Vector3.Zero(),scene);
             camera.wheelPrecision = 15;
@@ -144,6 +145,9 @@
             groundMaterial.wireframe = false;
 
             mesh.material = groundMaterial;
+            
+//            mesh.enableEdgesRendering(.99);
+//            mesh.edgesWidth = 5;
 
             let MeshEditor = org.ssatguru.babylonjs.component.MeshEditor;
             let me = new MeshEditor(mesh,camera,canvas,scene);

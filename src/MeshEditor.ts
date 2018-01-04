@@ -129,7 +129,7 @@ namespace org.ssatguru.babylonjs.component {
         }
 
         private createEditControl(mesh: Mesh,camera: Camera,canvas: HTMLCanvasElement): EditControl {
-            let ec=new EditControl(mesh,camera,canvas,0.5,true);
+            let ec=new EditControl(mesh,camera,canvas,0.75,true);
             ec.setLocal(true);
             ec.enableTranslation();
             ec.addActionListener((t) => {
