@@ -44,7 +44,6 @@ var org;
                             if (!(evt.button == 2))
                                 return;
                             if (pickResult.hit) {
-                                console.log(pickResult.pickedMesh);
                                 if (pickResult.pickedMesh != _this.mesh)
                                     return;
                                 _this.facePicked = pickResult.faceId;
@@ -145,7 +144,6 @@ var org;
                         return es;
                     };
                     MeshEditor.prototype.highLightFace = function (faceId, faceSelector) {
-                        console.log("highLightFace");
                         this.getFaceVertices(faceId, this.mesh, this.faceVertices);
                         var a1 = this.v1v.subtract(this.v2v);
                         var a2 = this.v3v.subtract(this.v2v);
@@ -154,7 +152,6 @@ var org;
                         faceSelector.position.y = (this.v1v.y + this.v2v.y + this.v3v.y) / 3;
                         faceSelector.position.z = (this.v1v.z + this.v2v.z + this.v3v.z) / 3;
                         var verts = faceSelector.getVerticesData(VertexBuffer.PositionKind);
-                        console.log(verts.length);
                         var sm_i = faceSelector.getWorldMatrix().clone().invert();
                         Vector3.TransformCoordinatesToRef(this.v1v, sm_i, this.pTemp);
                         verts[0] = this.pTemp.x;
@@ -203,7 +200,6 @@ var org;
                     };
                     ;
                     MeshEditor.prototype.highLightEdge = function (faceId, pickPoint, edgeSelector) {
-                        console.log("highLightEdge");
                         this.getFaceVertices(faceId, this.mesh, this.faceVertices);
                         var ev1;
                         var ev2;

@@ -92,7 +92,6 @@ namespace org.ssatguru.babylonjs.component {
                 //select only on right click
                 if(!(evt.button==2)) return;
                 if(pickResult.hit) {
-                    console.log(pickResult.pickedMesh);
                     if(pickResult.pickedMesh!=this.mesh) return;
                     this.facePicked=pickResult.faceId;
 
@@ -177,7 +176,6 @@ namespace org.ssatguru.babylonjs.component {
         v3v: Vector3=new Vector3(0,0,0);
 
         private highLightFace(faceId: number,faceSelector: Mesh) {
-            console.log("highLightFace");
             this.getFaceVertices(faceId,this.mesh,this.faceVertices);
 
             //set selector rotation so it is parallel to the triangular face selected
@@ -191,7 +189,6 @@ namespace org.ssatguru.babylonjs.component {
             faceSelector.position.z=(this.v1v.z+this.v2v.z+this.v3v.z)/3;
 
             let verts: number[]|Float32Array=faceSelector.getVerticesData(VertexBuffer.PositionKind);
-            console.log(verts.length);
             let sm_i: Matrix=faceSelector.getWorldMatrix().clone().invert();
 
             Vector3.TransformCoordinatesToRef(this.v1v,sm_i,this.pTemp);
@@ -274,7 +271,6 @@ namespace org.ssatguru.babylonjs.component {
 
 
         private highLightEdge(faceId: number,pickPoint: Vector3,edgeSelector: Mesh) {
-            console.log("highLightEdge");
             this.getFaceVertices(faceId,this.mesh,this.faceVertices);
             //ev1 and ev2 are the two vertices of the edge
             let ev1: Vector3;
